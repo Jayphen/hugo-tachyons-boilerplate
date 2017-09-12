@@ -3,6 +3,7 @@ import {spawn} from "child_process";
 import hugoBin from "hugo-bin";
 import gutil from "gulp-util";
 import postcss from "gulp-postcss";
+import posthtml from 'gulp-posthtml';
 import cssImport from "postcss-import";
 import cssnext from "postcss-cssnext";
 import BrowserSync from "browser-sync";
@@ -46,16 +47,31 @@ gulp.task("js", (cb) => {
   });
 });
 
+// PostHTML
+gulp.task("html", () => {
+  let plugins = [
+    require('posthtml-bem')({
+      elemPrefix: '__',
+      modPrefix: '--',
+      modDlmtr: '-'
+  })
+  ]
+  gulp.src("./src/**/*.html", {base: './src/'})
+    .pipe(posthtml(plugins))
+    .pipe(gulp.dest('./site/'));
+});
+
 // Development server with browsersync
-gulp.task("server", ["hugo", "css", "js"], () => {
+gulp.task("server", ["html", "hugo-preview", "css", "js"], () => {
   browserSync.init({
     server: {
       baseDir: "./dist"
     }
   });
-  gulp.watch("./src/js/**/*.js", ["js"]);
-  gulp.watch("./src/css/**/*.css", ["css"]);
-  gulp.watch("./site/**/*", ["hugo"]);
+  gulp.watch("src/js/**/*.js", ["js"]);
+  gulp.watch("src/css/**/*.css", ["css"]);
+  gulp.watch("src/layouts/**/*html", ["html"]);
+  gulp.watch("site/**/*", ["hugo-preview"]);
 });
 
 /**
