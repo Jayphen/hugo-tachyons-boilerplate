@@ -2,19 +2,15 @@
   You can use import statements to include partials:
  */
 @import "imports/reset.css";
-@import "imports/something.css";
+@import "imports/tachyons.css";
 
-
-/*
-  Or add your statements here:
- */
-body{
-  font-family: sans-serif;
-  font-size: 1em;
-  text-align: center;
+ 
+*, *:before, *:after {
+  box-sizing: inherit;
 }
-
+body {
+   overflow-x: hidden;
+   -webkit-font-smoothing: antialiased;
+}
 .container {
-  background: tomato;
-  color: white;
 }

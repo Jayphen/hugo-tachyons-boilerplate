@@ -2,20 +2,25 @@ import gulp from "gulp";
 import {spawn} from "child_process";
 import hugoBin from "hugo-bin";
 import gutil from "gulp-util";
+import gulpif from "gulp-if";
+import yargs from "yargs";
 import postcss from "gulp-postcss";
-import posthtml from 'gulp-posthtml';
-import cssImport from "postcss-import";
 import cssnext from "postcss-cssnext";
+import cssnano from "gulp-cssnano";
+import atImport from "postcss-import";
+import atExtend from "postcss-extend";
+import mqpacker from "css-mqpacker";
 import sourcemaps from "gulp-sourcemaps";
 import BrowserSync from "browser-sync";
 import webpack from "webpack";
 import webpackConfig from "./webpack.conf";
 
 const browserSync = BrowserSync.create();
+const argv = yargs.argv;
 
 // Hugo arguments
 const hugoArgsDefault = ["-d", "../dist", "-s", "site", "-v"];
-const hugoArgsPreview = ["--buildDrafts", "--buildFuture"];
+const hugoArgsPreview = ["--baseUrl=/", "--cleanDestinationDir", "--buildDrafts", "--buildFuture"];
 
 // Development tasks
 gulp.task("hugo", (cb) => buildSite(cb));
@@ -28,15 +33,18 @@ gulp.task("build-preview", ["css", "js"], (cb) => buildSite(cb, hugoArgsPreview,
 // Compile CSS with PostCSS
 gulp.task("css", () => (
   gulp.src("./src/css/*.css")
-    .pipe(sourcemaps.init())
+    .pipe(gulpif(!argv.production, sourcemaps.init()))
     .pipe(postcss(
       [
-        cssImport({from: "./src/css/main.css"}), 
-        cssnext()
+        atImport({from: "./src/css/main.css"}), 
+        atExtend(),
+        cssnext(),
+        mqpacker()
       ]
     ))
-    .pipe(sourcemaps.write())
-    .pipe(gulp.dest("./dist/css"))
+    .pipe(gulpif(!argv.production, sourcemaps.write()))
+    .pipe(gulpif(argv.production, cssnano()))
+    .pipe(gulp.dest("./site/static/css"))
     .pipe(browserSync.stream())
 ));
 
@@ -55,30 +63,17 @@ gulp.task("js", (cb) => {
   });
 });
 
-// PostHTML
-gulp.task("html", () => {
-  let plugins = [
-    require('posthtml-bem')({
-      elemPrefix: '__',
-      modPrefix: '--',
-      modDlmtr: '-'
-  })
-  ]
-  gulp.src("./src/**/*.html", {base: './src/'})
-    .pipe(posthtml(plugins))
-    .pipe(gulp.dest('./site/'));
-});
-
 // Development server with browsersync
-gulp.task("server", ["html", "hugo-preview", "css", "js"], () => {
+gulp.task("server", ["hugo-preview", "css", "js"], () => {
   browserSync.init({
     server: {
-      baseDir: "./dist"
-    }
+      baseDir: "./dist",
+    },
+    //host: 'sitename.test',
+    //open: 'external'
   });
   gulp.watch("src/js/**/*.js", ["js"]);
   gulp.watch("src/css/**/*.css", ["css"]);
-  gulp.watch("src/layouts/**/*html", ["html"]);
   gulp.watch("site/**/*", ["hugo-preview"]);
 });
 
